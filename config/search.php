@@ -8,4 +8,16 @@ return [
     'telefonos' => [
         'object' => 'search_telefonos',
     ],
+    'correos' => [
+        'object' => 'search_correos',
+    ],
+    'direcciones' => [
+        'object' => 'search_direcciones',
+    ],
+    'vehiculos' => [
+        'object' => 'search_vehiculos',
+    ],
+    'propiedades' => [
+        'object' => 'search_propiedades',
+    ],
 ];

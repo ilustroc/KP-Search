@@ -158,6 +158,128 @@ class SearchControllerTest extends TestCase
             ->assertSee('rel="noopener noreferrer"', false);
     }
 
+    public function test_search_renders_multiple_emails_when_no_person_or_phone_exists(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_correos')->insert([
+            $this->emailRecord(['documento' => '01115105', 'correo' => 'uno@example.test']),
+            $this->emailRecord(['documento' => '01115105', 'correo' => 'dos@example.test']),
+        ]);
+
+        $response = $this->post('/buscar', ['documento' => '01115105']);
+
+        $response
+            ->assertOk()
+            ->assertSeeText('Documento 01115105')
+            ->assertSeeText('uno@example.test')
+            ->assertSeeText('dos@example.test')
+            ->assertDontSeeText('No se encontró información para el documento ingresado.');
+    }
+
+    public function test_search_renders_multiple_addresses_when_no_person_or_phone_exists(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_direcciones')->insert([
+            $this->addressRecord(['documento' => '01115105', 'direccion' => 'JR. PACHITEA 298', 'data_procedencia' => 'RENIEC 2025', 'procedencia_anio' => 2025]),
+            $this->addressRecord(['documento' => '01115105', 'direccion' => 'JR. PACHITEA 298', 'data_procedencia' => 'RENIEC 2022', 'procedencia_anio' => 2022]),
+        ]);
+
+        $response = $this->post('/buscar', ['documento' => '01115105']);
+
+        $response
+            ->assertOk()
+            ->assertSeeText('Documento 01115105')
+            ->assertSeeText('JR. PACHITEA 298')
+            ->assertSeeText('RENIEC 2025')
+            ->assertSeeText('RENIEC 2022')
+            ->assertDontSeeText('No se encontró información para el documento ingresado.');
+    }
+
+    public function test_search_renders_vehicle_without_plate_when_it_is_the_only_dataset(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_vehiculos')->insert($this->vehicleRecord([
+            'documento' => '01115105',
+            'placa' => null,
+            'marca' => 'HONDA',
+            'clase' => 'MOTOCICLETA',
+            'anio_compra' => 2021,
+            'anio_fabricacion' => null,
+            'numero_transferencias' => null,
+        ]));
+
+        $response = $this->post('/buscar', ['documento' => '01115105']);
+
+        $response
+            ->assertOk()
+            ->assertSeeText('Documento 01115105')
+            ->assertSeeText('Sin placa')
+            ->assertSeeText('HONDA')
+            ->assertSeeText('MOTOCICLETA')
+            ->assertSeeText('2021')
+            ->assertDontSeeText('No se encontró información para el documento ingresado.');
+    }
+
+    public function test_search_renders_properties_when_no_person_or_phone_exists(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_propiedades')->insert([
+            $this->propertyRecord(['documento' => '01115105', 'partida_registral' => 'P02086269']),
+            $this->propertyRecord(['documento' => '01115105', 'partida_registral' => '11184695']),
+        ]);
+
+        $response = $this->post('/buscar', ['documento' => '01115105']);
+
+        $response
+            ->assertOk()
+            ->assertSeeText('Documento 01115105')
+            ->assertSeeText('P02086269')
+            ->assertSeeText('11184695')
+            ->assertDontSeeText('No se encontró información para el documento ingresado.');
+    }
+
+    public function test_search_renders_all_published_gold_datasets_and_their_badges(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_person_index')->insert($this->personRecord());
+        DB::connection('mysql_gold')->table('search_telefonos')->insert($this->phoneRecord([
+            'documento' => '12345678',
+        ]));
+        DB::connection('mysql_gold')->table('search_correos')->insert([
+            $this->emailRecord(['correo' => 'uno@example.test']),
+            $this->emailRecord(['correo' => 'dos@example.test']),
+        ]);
+        DB::connection('mysql_gold')->table('search_direcciones')->insert([
+            $this->addressRecord(['direccion' => 'AV. UNO 100']),
+            $this->addressRecord(['direccion' => 'AV. DOS 200']),
+        ]);
+        DB::connection('mysql_gold')->table('search_vehiculos')->insert([
+            $this->vehicleRecord(['placa' => 'AAA-111']),
+            $this->vehicleRecord(['placa' => 'BBB-222']),
+        ]);
+        DB::connection('mysql_gold')->table('search_propiedades')->insert([
+            $this->propertyRecord(['partida_registral' => 'P02086269']),
+            $this->propertyRecord(['partida_registral' => '11184695']),
+        ]);
+
+        $response = $this->post('/buscar', ['documento' => '12345678']);
+        $content = $response->getContent();
+
+        $response
+            ->assertOk()
+            ->assertSeeText('CLIENTE DE PRUEBA')
+            ->assertSeeText('903211606')
+            ->assertSeeText('uno@example.test')
+            ->assertSeeText('AV. UNO 100')
+            ->assertSeeText('AAA-111')
+            ->assertSeeText('P02086269');
+        $this->assertMatchesRegularExpression('/Teléfonos<\/h2>.*?>1<\/span>/s', $content);
+        $this->assertMatchesRegularExpression('/Correos<\/h2>.*?>2<\/span>/s', $content);
+        $this->assertMatchesRegularExpression('/Direcciones<\/h2>.*?>2<\/span>/s', $content);
+        $this->assertMatchesRegularExpression('/Vehículos<\/h2>.*?>2<\/span>/s', $content);
+        $this->assertMatchesRegularExpression('/Propiedades<\/h2>.*?>2<\/span>/s', $content);
+    }
+
     public function test_search_displays_query_error_when_gold_connection_fails(): void
     {
         $this->configureGoldConnection();
@@ -166,7 +288,7 @@ class SearchControllerTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeText('No fue posible realizar la consulta en este momento.')
+            ->assertSeeText('No fue posible realizar la consulta. Inténtalo nuevamente.')
             ->assertDontSeeText('No se encontró información para el documento ingresado.');
     }
 
@@ -198,6 +320,21 @@ class SearchControllerTest extends TestCase
         $this->createGoldPersonIndex();
         DB::connection('mysql_gold')->table('search_person_index')->insert($this->personRecord([
             'nombre_completo' => '<script>alert("xss")</script>',
+        ]));
+
+        $response = $this->post('/buscar', ['documento' => '12345678']);
+
+        $response
+            ->assertOk()
+            ->assertSee('&lt;script&gt;', false)
+            ->assertDontSee('<script>alert("xss")</script>', false);
+    }
+
+    public function test_email_data_is_html_escaped(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_correos')->insert($this->emailRecord([
+            'correo' => '<script>alert("xss")</script>',
         ]));
 
         $response = $this->post('/buscar', ['documento' => '12345678']);
@@ -244,6 +381,59 @@ class SearchControllerTest extends TestCase
             $table->string('telefono');
             $table->string('operador')->nullable();
             $table->date('fecha_data')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_correos', function (Blueprint $table): void {
+            $table->string('documento');
+            $table->string('correo');
+            $table->string('correo_original')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_direcciones', function (Blueprint $table): void {
+            $table->string('address_id')->nullable();
+            $table->string('documento');
+            $table->string('direccion')->nullable();
+            $table->string('departamento')->nullable();
+            $table->string('provincia')->nullable();
+            $table->string('distrito')->nullable();
+            $table->string('data_procedencia')->nullable();
+            $table->unsignedInteger('procedencia_anio')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_vehiculos', function (Blueprint $table): void {
+            $table->string('vehicle_id')->nullable();
+            $table->string('documento');
+            $table->string('nombre_completo_fuente')->nullable();
+            $table->string('clase')->nullable();
+            $table->unsignedInteger('anio_compra')->nullable();
+            $table->unsignedInteger('anio_fabricacion')->nullable();
+            $table->string('marca')->nullable();
+            $table->string('placa')->nullable();
+            $table->string('placa_original')->nullable();
+            $table->unsignedInteger('numero_transferencias')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_propiedades', function (Blueprint $table): void {
+            $table->string('property_id')->nullable();
+            $table->string('documento');
+            $table->string('partida_registral')->nullable();
+            $table->string('zona_registral')->nullable();
+            $table->string('oficina')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 
@@ -292,6 +482,66 @@ class SearchControllerTest extends TestCase
             'telefono' => '903211606',
             'operador' => 'ENTEL',
             'fecha_data' => '2026-07-01',
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function emailRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'correo' => 'cliente@example.test',
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function addressRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'direccion' => 'JR. PRUEBA 100',
+            'departamento' => 'LIMA',
+            'provincia' => 'LIMA',
+            'distrito' => 'COMAS',
+            'data_procedencia' => 'RENIEC 2025',
+            'procedencia_anio' => 2025,
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function vehicleRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'placa' => 'ABC-123',
+            'marca' => 'TOYOTA',
+            'clase' => 'AUTOMOVIL',
+            'anio_compra' => 2020,
+            'anio_fabricacion' => 2019,
+            'numero_transferencias' => 1,
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function propertyRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'partida_registral' => 'P02086269',
+            'zona_registral' => 'IX',
+            'oficina' => 'LIMA',
         ], $overrides);
     }
 }

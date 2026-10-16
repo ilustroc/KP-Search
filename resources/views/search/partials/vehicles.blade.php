@@ -12,13 +12,14 @@
         <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">{{ count($vehicles) }}</span>
     </div>
     <div class="max-w-full overflow-x-auto">
-        <table class="w-full min-w-[480px] text-left text-[13px]">
-            <thead class="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-[0.05em] text-slate-500"><tr><th class="px-4 py-2 font-semibold">Placa</th><th class="px-4 py-2 font-semibold">Marca</th><th class="px-4 py-2 font-semibold">Clase</th></tr></thead>
+        <table class="w-full min-w-[720px] text-left text-[13px]">
+            <thead class="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-[0.05em] text-slate-500"><tr><th class="px-4 py-2 font-semibold">Placa</th><th class="px-4 py-2 font-semibold">Marca</th><th class="px-4 py-2 font-semibold">Clase</th><th class="px-4 py-2 font-semibold">Año</th><th class="px-4 py-2 font-semibold">Transferencias</th></tr></thead>
             <tbody class="divide-y divide-slate-100 text-slate-700">
                 @forelse ($vehicles as $vehicle)
-                    <tr><td class="px-4 py-2.5 font-medium">{{ data_get($vehicle, 'placa', '—') }}</td><td class="px-4 py-2.5">{{ data_get($vehicle, 'marca', '—') }}</td><td class="px-4 py-2.5">{{ data_get($vehicle, 'clase', '—') }}</td></tr>
+                    @php($vehicleYear = filled(data_get($vehicle, 'anio_fabricacion')) ? data_get($vehicle, 'anio_fabricacion') : data_get($vehicle, 'anio_compra'))
+                    <tr><td class="px-4 py-2.5 font-medium">{{ filled(data_get($vehicle, 'placa')) ? data_get($vehicle, 'placa') : 'Sin placa' }}</td><td class="px-4 py-2.5">{{ data_get($vehicle, 'marca', '—') }}</td><td class="px-4 py-2.5">{{ data_get($vehicle, 'clase', '—') }}</td><td class="px-4 py-2.5">{{ filled($vehicleYear) ? $vehicleYear : '—' }}</td><td class="px-4 py-2.5">{{ filled(data_get($vehicle, 'numero_transferencias')) ? data_get($vehicle, 'numero_transferencias') : '—' }}</td></tr>
                 @empty
-                    <tr><td colspan="3" class="px-4 py-3.5 text-sm text-slate-500">No se encontraron datos</td></tr>
+                    <tr><td colspan="5" class="px-4 py-3.5 text-sm text-slate-500">No se encontraron datos</td></tr>
                 @endforelse
             </tbody>
         </table>

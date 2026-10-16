@@ -16,7 +16,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700">
                 @forelse ($addresses as $address)
-                    <tr><td class="px-4 py-2.5 font-medium">{{ data_get($address, 'direccion', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'departamento', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'provincia', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'distrito', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'procedencia', '—') }}</td></tr>
+                    <tr><td class="px-4 py-2.5 font-medium">{{ data_get($address, 'direccion', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'departamento', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'provincia', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'distrito', '—') }}</td><td class="px-4 py-2.5">{{ data_get($address, 'data_procedencia', '—') }}</td></tr>
                 @empty
                     <tr><td colspan="5" class="px-4 py-3.5 text-sm text-slate-500">No se encontraron datos</td></tr>
                 @endforelse

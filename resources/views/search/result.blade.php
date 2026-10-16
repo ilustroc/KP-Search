@@ -50,10 +50,9 @@
                             <path d="m10.3 3.9-7 12.1A2 2 0 0 0 5 19h14a2 2 0 0 0 1.7-3l-7-12.1a2 2 0 0 0-3.4 0Z"></path>
                         </svg>
                     </div>
-                    <h1 class="mt-4 text-lg font-bold text-slate-900">No fue posible realizar la consulta en este momento.</h1>
-                    <p class="mt-1.5 text-sm text-slate-600">Intente nuevamente en unos minutos.</p>
+                    <h1 class="mt-4 text-lg font-bold text-slate-900">No fue posible realizar la consulta. Inténtalo nuevamente.</h1>
                 </section>
-            @elseif ($result['person'] === null && $result['phones'] === [])
+            @elseif ($result['person'] === null && $result['phones'] === [] && $result['emails'] === [] && $result['addresses'] === [] && $result['vehicles'] === [] && $result['properties'] === [])
                 <section class="rounded-lg border border-slate-200 bg-white px-5 py-10 text-center shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                     <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-hidden="true">
                         <svg class="size-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
