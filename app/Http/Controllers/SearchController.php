@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Search\CreateSearchContext;
-use App\Http\Requests\StoreSearchRequest;
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\SearchRequest;
+use App\Services\SearchService;
 use Illuminate\View\View;
 
 class SearchController extends Controller
@@ -15,18 +13,13 @@ class SearchController extends Controller
         return view('search.index');
     }
 
-    public function store(StoreSearchRequest $request, CreateSearchContext $createSearchContext): RedirectResponse
+    public function store(SearchRequest $request, SearchService $searchService): View
     {
-        /** @var User $user */
-        $user = $request->user();
-        $result = $createSearchContext->handle(
-            $user,
-            $request->string('document')->toString(),
-            $request,
-        );
+        $document = $request->string('documento')->toString();
 
-        return redirect()
-            ->route('search.results.show', ['token' => $result['token']])
-            ->setStatusCode(303);
+        return view('search.result', [
+            'document' => $document,
+            'result' => $searchService->search($document),
+        ]);
     }
 }

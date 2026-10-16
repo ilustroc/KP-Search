@@ -1,78 +1,32 @@
-//
-const initializeSearchTabs = () => {
-    const container = document.querySelector('[data-search-tabs]');
+const initializeResultTabs = () => {
+    const container = document.querySelector('[data-result-tabs]');
 
     if (!container) {
         return;
     }
 
-    const tabs = Array.from(container.querySelectorAll('[data-module-tab]'));
-    const panel = container.querySelector('#search-module-panel');
-    const cache = new Map();
-    let activeRequest = null;
+    const tabs = Array.from(container.querySelectorAll('[data-result-tab]'));
+    const panels = Array.from(container.querySelectorAll('[data-result-panel]'));
 
-    const renderState = (state) => {
-        const template = container.querySelector(`[data-module-state-template="${state}"]`);
-
-        if (template && panel) {
-            panel.replaceChildren(template.content.cloneNode(true));
-        }
-    };
-
-    const selectTab = async (tab) => {
-        if (!panel) {
-            return;
-        }
+    const selectTab = (tab) => {
+        const selectedPanel = tab.dataset.resultTab;
 
         tabs.forEach((candidate) => {
             const isSelected = candidate === tab;
             candidate.setAttribute('aria-selected', String(isSelected));
             candidate.setAttribute('tabindex', isSelected ? '0' : '-1');
-            candidate.classList.toggle('border-kp-green-dark', isSelected);
-            candidate.classList.toggle('text-kp-green-dark', isSelected);
-            candidate.classList.toggle('border-transparent', !isSelected);
+            candidate.classList.toggle('bg-kp-green-dark', isSelected);
+            candidate.classList.toggle('text-white', isSelected);
+            candidate.classList.toggle('shadow-sm', isSelected);
+            candidate.classList.toggle('bg-transparent', !isSelected);
             candidate.classList.toggle('text-slate-600', !isSelected);
+            candidate.classList.toggle('hover:bg-slate-50', !isSelected);
+            candidate.classList.toggle('hover:text-slate-900', !isSelected);
         });
 
-        const module = tab.dataset.module;
-
-        if (cache.has(module)) {
-            panel.innerHTML = cache.get(module);
-            return;
-        }
-
-        activeRequest?.abort();
-        activeRequest = new AbortController();
-        renderState('loading');
-
-        try {
-            const response = await fetch(tab.dataset.url, {
-                headers: {
-                    Accept: 'text/html',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-                signal: activeRequest.signal,
-            });
-
-            if (response.status === 403) {
-                renderState('forbidden');
-                return;
-            }
-
-            if (!response.ok) {
-                renderState('error');
-                return;
-            }
-
-            const html = await response.text();
-            cache.set(module, html);
-            panel.innerHTML = html;
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                renderState('error');
-            }
-        }
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.resultPanel !== selectedPanel;
+        });
     };
 
     tabs.forEach((tab, index) => {
@@ -91,14 +45,30 @@ const initializeSearchTabs = () => {
                     ? tabs.length - 1
                     : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
 
-            tabs[targetIndex].focus();
             selectTab(tabs[targetIndex]);
+            tabs[targetIndex].focus();
         });
     });
-
-    if (tabs[0]) {
-        selectTab(tabs[0]);
-    }
 };
 
-document.addEventListener('DOMContentLoaded', initializeSearchTabs);
+const initializeExpandableTables = () => {
+    document.querySelectorAll('[data-table-toggle]').forEach((button) => {
+        const section = button.closest('section');
+        const rows = section?.querySelectorAll('[data-expandable-row]') ?? [];
+
+        button.addEventListener('click', () => {
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+            rows.forEach((row) => {
+                row.hidden = isExpanded;
+            });
+            button.setAttribute('aria-expanded', String(!isExpanded));
+            button.textContent = isExpanded ? 'Ver más' : 'Ver menos';
+        });
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeResultTabs();
+    initializeExpandableTables();
+});

@@ -1,42 +1,48 @@
 @extends('layouts.app')
 
-@section('title', 'Buscar | KP SEARCH')
+@section('title', 'Consulta de Clientes | KP SEARCH')
 
-@section('content')
-    <section class="mx-auto max-w-4xl py-12 text-center lg:py-20">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-kp-green-dark">KP INVEST</p>
-        <h1 class="mt-4 text-4xl font-semibold tracking-tight text-kp-blue sm:text-5xl">KP SEARCH</h1>
-        <p class="mt-4 text-lg text-slate-600">Consulta centralizada de información</p>
-
-        <form method="POST" action="{{ route('search.store') }}" class="mx-auto mt-12 max-w-3xl text-left">
-            @csrf
-            <label for="document" class="block text-sm font-semibold text-slate-700">DNI o RUC</label>
-            <div class="mt-2 flex flex-col gap-3 sm:flex-row">
-                <input
-                    id="document"
-                    name="document"
-                    type="text"
-                    value="{{ old('document') }}"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    maxlength="11"
-                    pattern="(?:[0-9]{8}|[0-9]{11})"
-                    required
-                    aria-describedby="document-help"
-                    class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-5 py-4 text-lg tracking-wide text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-kp-green-dark focus:ring-3 focus:ring-kp-green/15"
-                    placeholder="Ingrese DNI o RUC"
+@section('body')
+    <main class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+        <section class="w-full max-w-xl rounded-xl border border-slate-200/80 bg-white px-6 py-8 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:px-9 sm:py-10">
+            <div class="text-center">
+                <img
+                    src="{{ asset('brand/kp-invest-logo.png') }}"
+                    alt="KP Invest"
+                    width="230"
+                    height="55"
+                    class="mx-auto h-12 w-auto object-contain sm:h-14"
                 >
-                <button type="submit" class="rounded-lg bg-kp-green-dark px-8 py-4 text-base font-semibold text-white transition hover:bg-kp-green-deep focus:outline-none focus:ring-2 focus:ring-kp-green-dark focus:ring-offset-2">
-                    Buscar
-                </button>
+                <h1 class="mt-7 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Consulta de Clientes</h1>
+                <p class="mt-2 text-sm text-slate-500 sm:text-base">Ingrese el número de documento que desea consultar.</p>
             </div>
-            <div id="document-help" class="mt-3 flex flex-col gap-1 text-sm text-slate-500 sm:flex-row sm:justify-between">
-                <span>DNI: 8 dígitos · RUC: 11 dígitos</span>
-                <span>El documento no aparecerá en la URL.</span>
-            </div>
-            @error('document')
-                <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
-            @enderror
-        </form>
-    </section>
+
+            <form method="POST" action="{{ route('search.store') }}" class="mt-8" novalidate>
+                @csrf
+                <label for="documento" class="block text-xs font-bold uppercase tracking-[0.1em] text-slate-600">Número de documento</label>
+                <div class="mt-2.5 flex flex-col gap-2.5 sm:flex-row">
+                    <input
+                        id="documento"
+                        name="documento"
+                        type="text"
+                        value="{{ old('documento') }}"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        maxlength="8"
+                        pattern="[0-9]{8}"
+                        required
+                        autofocus
+                        class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-base tracking-wide text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-kp-green focus:ring-3 focus:ring-kp-green/10"
+                        placeholder="Ej: 12345678"
+                    >
+                    <button type="submit" class="rounded-lg bg-kp-green-dark px-7 py-3 text-sm font-bold text-white transition hover:bg-kp-green-deep focus:outline-none focus:ring-2 focus:ring-kp-green-dark focus:ring-offset-2">Consultar</button>
+                </div>
+                @error('documento')
+                    <p class="mt-2.5 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>
+                @enderror
+            </form>
+
+            <p class="mt-8 border-t border-slate-100 pt-5 text-center text-xs text-slate-400">Uso interno de KP INVEST</p>
+        </section>
+    </main>
 @endsection

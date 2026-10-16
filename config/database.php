@@ -40,7 +40,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql_app'),
+    'default' => env('DB_CONNECTION', 'mysql_gold'),
 
     /*
     |--------------------------------------------------------------------------
@@ -55,11 +55,7 @@ return [
 
     'connections' => [
 
-        'mysql_app' => $mysqlConnection('DB_APP', 'kp_search'),
-
         'mysql_gold' => $mysqlConnection('DB_GOLD', 'kp_gold'),
-
-        'mysql_crm' => $mysqlConnection('DB_CRM', 'kpinvest_konnexia'),
 
         'sqlite' => [
             'driver' => 'sqlite',
