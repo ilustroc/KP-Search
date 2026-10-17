@@ -66,6 +66,38 @@ class SearchService
         'oficina',
     ];
 
+    /** @var list<string> */
+    private const SBS_SUMMARY_COLUMNS = [
+        'cod_sbs',
+        'fecha_reporte_sbs',
+        'cantidad_empresas',
+        'calificacion_normal',
+        'calificacion_cpp',
+        'calificacion_deficiente',
+        'calificacion_dudoso',
+        'calificacion_perdida',
+    ];
+
+    /** @var list<string> */
+    private const SBS_DETAIL_COLUMNS = [
+        'fecha_reporte_sbs',
+        'cod_sbs',
+        'entidad',
+        'tipo_credito',
+        'condicion',
+        'monto',
+        'dias_atraso',
+    ];
+
+    /** @var list<string> */
+    private const EMPLOYMENT_COLUMNS = [
+        'periodo',
+        'ruc',
+        'nombre_empresa',
+        'sueldo',
+        'situacion',
+    ];
+
     /**
      * @return array{
      *     person: array<string, mixed>|null,
@@ -102,6 +134,15 @@ class SearchService
 
             $dataset = 'PROPIEDADES';
             $properties = $this->findProperties($document);
+
+            $dataset = 'SBS_RESUMEN';
+            $sbsSummary = $this->findSbsSummary($document);
+
+            $dataset = 'SBS_DETALLE';
+            $sbsAccounts = $this->findSbsDetails($document);
+
+            $dataset = 'LABORAL_ESSALUD';
+            $essalud = $this->findEmployment($document);
         } catch (Throwable $exception) {
             $this->logGoldQueryFailure($dataset, $exception);
 
@@ -115,6 +156,9 @@ class SearchService
             addresses: $addresses,
             vehicles: $vehicles,
             properties: $properties,
+            sbsSummary: $sbsSummary,
+            sbsAccounts: $sbsAccounts,
+            essalud: $essalud,
         );
     }
 
@@ -234,6 +278,85 @@ class SearchService
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    private function findSbsSummary(string $document): array
+    {
+        return DB::connection((string) config('search.connection'))
+            ->table((string) config('search.sbs_resumen.object'))
+            ->select(self::SBS_SUMMARY_COLUMNS)
+            ->where('documento', $document)
+            ->orderByDesc('fecha_reporte_sbs')
+            ->orderBy('cod_sbs')
+            ->get()
+            ->map(function (stdClass $summary): array {
+                $summaryData = (array) $summary;
+                $summaryData['fecha_reporte_formateada'] = $this->formatPeriod($summaryData['fecha_reporte_sbs'] ?? null);
+
+                foreach (['normal', 'cpp', 'deficiente', 'dudoso', 'perdida'] as $rating) {
+                    $summaryData["calificacion_{$rating}_formateada"] = $this->formatPercentage(
+                        $summaryData["calificacion_{$rating}"] ?? null,
+                    );
+                }
+
+                return $summaryData;
+            })
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function findSbsDetails(string $document): array
+    {
+        return DB::connection((string) config('search.connection'))
+            ->table((string) config('search.sbs_detalle.object'))
+            ->select(self::SBS_DETAIL_COLUMNS)
+            ->where('documento', $document)
+            ->orderByDesc('fecha_reporte_sbs')
+            ->orderBy('entidad')
+            ->orderBy('tipo_credito')
+            ->get()
+            ->map(function (stdClass $detail): array {
+                $detailData = (array) $detail;
+                $detailData['fecha_reporte_formateada'] = $this->formatPeriod($detailData['fecha_reporte_sbs'] ?? null);
+                $detailData['condicion_formateada'] = $this->formatSbsCondition($detailData['condicion'] ?? null);
+                $detailData['monto_formateado'] = $this->formatNumber($detailData['monto'] ?? null);
+                $detailData['dias_atraso_formateados'] = $this->formatDaysLate($detailData['dias_atraso'] ?? null);
+
+                return $detailData;
+            })
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function findEmployment(string $document): array
+    {
+        return DB::connection((string) config('search.connection'))
+            ->table((string) config('search.laboral_essalud.object'))
+            ->select(self::EMPLOYMENT_COLUMNS)
+            ->where('documento', $document)
+            ->orderByDesc('periodo')
+            ->orderBy('nombre_empresa')
+            ->orderBy('ruc')
+            ->get()
+            ->map(function (stdClass $employment): array {
+                $employmentData = (array) $employment;
+                $employmentData['periodo_formateado'] = $this->formatPeriod($employmentData['periodo'] ?? null);
+                $employmentData['empresa_formateada'] = $this->valueOrDefault(
+                    $employmentData['nombre_empresa'] ?? null,
+                    'Empresa no informada',
+                );
+                $employmentData['sueldo_formateado'] = $this->formatNumber($employmentData['sueldo'] ?? null);
+
+                return $employmentData;
+            })
+            ->all();
+    }
+
+    /**
      * @return array{
      *     person: array<string, mixed>|null,
      *     gold_query_failed: bool,
@@ -255,6 +378,9 @@ class SearchService
         array $addresses = [],
         array $vehicles = [],
         array $properties = [],
+        array $sbsSummary = [],
+        array $sbsAccounts = [],
+        array $essalud = [],
         bool $goldQueryFailed = false,
     ): array {
         return [
@@ -266,9 +392,9 @@ class SearchService
             'vehicles' => $vehicles,
             'properties' => $properties,
             'family' => [],
-            'sbs_summary' => [],
-            'sbs_accounts' => [],
-            'essalud' => [],
+            'sbs_summary' => $sbsSummary,
+            'sbs_accounts' => $sbsAccounts,
+            'essalud' => $essalud,
         ];
     }
 
@@ -317,5 +443,64 @@ class SearchService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function formatPeriod(mixed $period): ?string
+    {
+        $value = (string) $period;
+
+        if (preg_match('/\A(\d{4})(0[1-9]|1[0-2])\z/', $value, $matches) !== 1) {
+            return null;
+        }
+
+        return "{$matches[2]}/{$matches[1]}";
+    }
+
+    private function formatPercentage(mixed $percentage): ?string
+    {
+        $formatted = $this->formatNumber($percentage);
+
+        return $formatted === null ? null : "{$formatted}%";
+    }
+
+    private function formatNumber(mixed $number): ?string
+    {
+        if (! is_numeric($number)) {
+            return null;
+        }
+
+        $formatted = number_format((float) $number, 4, '.', ',');
+        $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+        return $formatted === '-0' ? '0' : $formatted;
+    }
+
+    private function formatSbsCondition(mixed $condition): ?string
+    {
+        return match ($condition) {
+            'NOR' => 'Normal',
+            'CPP' => 'Con problemas potenciales',
+            'DEF' => 'Deficiente',
+            'DUD' => 'Dudoso',
+            'PER' => 'Pérdida',
+            null, '' => null,
+            default => (string) $condition,
+        };
+    }
+
+    private function formatDaysLate(mixed $daysLate): ?string
+    {
+        if (! is_numeric($daysLate)) {
+            return null;
+        }
+
+        $days = (int) $daysLate;
+
+        return $days === 1 ? '1 día' : "{$days} días";
+    }
+
+    private function valueOrDefault(mixed $value, string $default): string
+    {
+        return is_string($value) && trim($value) !== '' ? $value : $default;
     }
 }

@@ -20,4 +20,13 @@ return [
     'propiedades' => [
         'object' => 'search_propiedades',
     ],
+    'sbs_resumen' => [
+        'object' => 'search_sbs_resumen',
+    ],
+    'sbs_detalle' => [
+        'object' => 'search_sbs_detalle',
+    ],
+    'laboral_essalud' => [
+        'object' => 'search_laboral_essalud',
+    ],
 ];

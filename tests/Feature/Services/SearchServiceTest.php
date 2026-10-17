@@ -23,7 +23,7 @@ class SearchServiceTest extends TestCase
         $queries = DB::connection('mysql_gold')->getQueryLog();
 
         $this->assertSame('CLIENTE EXACTO', $result['person']['nombre_completo']);
-        $this->assertCount(6, $queries);
+        $this->assertCount(9, $queries);
 
         foreach ($queries as $query) {
             $this->assertStringContainsString('where "documento" = ?', $query['query']);
@@ -132,6 +132,62 @@ class SearchServiceTest extends TestCase
         $this->assertSame([], $result['essalud']);
     }
 
+    public function test_search_orders_sbs_summary_and_formats_percentages(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_sbs_resumen')->insert([
+            $this->sbsSummaryRecord(['fecha_reporte_sbs' => '202607', 'cod_sbs' => '002', 'calificacion_normal' => '92.4500']),
+            $this->sbsSummaryRecord(['fecha_reporte_sbs' => '202607', 'cod_sbs' => '001', 'calificacion_normal' => '100.0000']),
+            $this->sbsSummaryRecord(['fecha_reporte_sbs' => '202506', 'cod_sbs' => '001', 'calificacion_normal' => '25.0000']),
+        ]);
+
+        $result = app(SearchService::class)->search('12345678');
+
+        $this->assertSame(['001', '002', '001'], array_column($result['sbs_summary'], 'cod_sbs'));
+        $this->assertSame('07/2026', $result['sbs_summary'][0]['fecha_reporte_formateada']);
+        $this->assertSame('100%', $result['sbs_summary'][0]['calificacion_normal_formateada']);
+        $this->assertSame('92.45%', $result['sbs_summary'][1]['calificacion_normal_formateada']);
+    }
+
+    public function test_search_orders_sbs_details_and_formats_conditions_and_nullable_fields(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_sbs_detalle')->insert([
+            $this->sbsDetailRecord(['fecha_reporte_sbs' => '202607', 'entidad' => 'BANCO B', 'tipo_credito' => 'PERSONAL', 'condicion' => 'NOR', 'dias_atraso' => 0]),
+            $this->sbsDetailRecord(['fecha_reporte_sbs' => '202607', 'entidad' => 'BANCO A', 'tipo_credito' => 'VEHICULAR', 'condicion' => 'CPP', 'dias_atraso' => 1]),
+            $this->sbsDetailRecord(['fecha_reporte_sbs' => '202607', 'entidad' => 'BANCO A', 'tipo_credito' => null, 'condicion' => 'DEF', 'dias_atraso' => null]),
+            $this->sbsDetailRecord(['fecha_reporte_sbs' => '202506', 'entidad' => 'BANCO Z', 'condicion' => 'DUD']),
+            $this->sbsDetailRecord(['fecha_reporte_sbs' => '202506', 'entidad' => 'BANCO Y', 'condicion' => 'PER']),
+        ]);
+
+        $result = app(SearchService::class)->search('12345678');
+
+        $this->assertSame(['BANCO A', 'BANCO A', 'BANCO B', 'BANCO Y', 'BANCO Z'], array_column($result['sbs_accounts'], 'entidad'));
+        $this->assertNull($result['sbs_accounts'][0]['tipo_credito']);
+        $this->assertNull($result['sbs_accounts'][0]['dias_atraso_formateados']);
+        $this->assertSame(['Deficiente', 'Con problemas potenciales', 'Normal', 'Pérdida', 'Dudoso'], array_column($result['sbs_accounts'], 'condicion_formateada'));
+        $this->assertSame('1 día', $result['sbs_accounts'][1]['dias_atraso_formateados']);
+        $this->assertSame('0 días', $result['sbs_accounts'][2]['dias_atraso_formateados']);
+    }
+
+    public function test_search_orders_employment_and_formats_nullable_values(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_laboral_essalud')->insert([
+            $this->employmentRecord(['periodo' => '202607', 'nombre_empresa' => 'ZETA S.A.C.', 'ruc' => '20100000002', 'sueldo' => '1250.5000', 'situacion' => 'ACTIVO']),
+            $this->employmentRecord(['periodo' => '202607', 'nombre_empresa' => 'ALFA S.A.C.', 'ruc' => '20100000001', 'sueldo' => null, 'situacion' => null]),
+            $this->employmentRecord(['periodo' => '202506', 'nombre_empresa' => null, 'ruc' => '20100000003']),
+        ]);
+
+        $result = app(SearchService::class)->search('12345678');
+
+        $this->assertSame(['ALFA S.A.C.', 'ZETA S.A.C.', 'Empresa no informada'], array_column($result['essalud'], 'empresa_formateada'));
+        $this->assertSame('07/2026', $result['essalud'][0]['periodo_formateado']);
+        $this->assertNull($result['essalud'][0]['sueldo_formateado']);
+        $this->assertSame('1,250.5', $result['essalud'][1]['sueldo_formateado']);
+        $this->assertNull($result['essalud'][0]['situacion']);
+    }
+
     public function test_gold_failure_does_not_log_document_or_sql(): void
     {
         $this->configureGoldConnection();
@@ -148,6 +204,27 @@ class SearchServiceTest extends TestCase
 
                 return ! str_contains($loggedData, '12345678')
                     && ! str_contains(mb_strtolower($loggedData), 'select');
+            });
+    }
+
+    public function test_financial_query_failure_does_not_log_document_sql_or_credentials(): void
+    {
+        $this->createGoldPersonIndex();
+        config()->set('search.sbs_resumen.object', 'missing_financial_source');
+        Log::spy();
+
+        $result = app(SearchService::class)->search('12345678');
+
+        $this->assertTrue($result['gold_query_failed']);
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(function (string $message, array $context): bool {
+                $loggedData = $message.json_encode($context);
+
+                return $context['dataset'] === 'SBS_RESUMEN'
+                    && ! str_contains($loggedData, '12345678')
+                    && ! str_contains(mb_strtolower($loggedData), 'select')
+                    && ! str_contains(mb_strtolower($loggedData), 'password');
             });
     }
 
@@ -236,6 +313,51 @@ class SearchServiceTest extends TestCase
             $table->string('partida_registral')->nullable();
             $table->string('zona_registral')->nullable();
             $table->string('oficina')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_sbs_resumen', function (Blueprint $table): void {
+            $table->string('documento');
+            $table->string('cod_sbs');
+            $table->string('fecha_reporte_sbs');
+            $table->unsignedInteger('cantidad_empresas')->nullable();
+            $table->decimal('calificacion_normal', 8, 4)->nullable();
+            $table->decimal('calificacion_cpp', 8, 4)->nullable();
+            $table->decimal('calificacion_deficiente', 8, 4)->nullable();
+            $table->decimal('calificacion_dudoso', 8, 4)->nullable();
+            $table->decimal('calificacion_perdida', 8, 4)->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_sbs_detalle', function (Blueprint $table): void {
+            $table->string('gold_detail_id')->nullable();
+            $table->string('fecha_reporte_sbs');
+            $table->string('documento');
+            $table->string('cod_sbs')->nullable();
+            $table->string('entidad')->nullable();
+            $table->string('tipo_credito')->nullable();
+            $table->string('condicion')->nullable();
+            $table->decimal('monto', 16, 4)->nullable();
+            $table->unsignedInteger('dias_atraso')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
+        Schema::connection('mysql_gold')->create('search_laboral_essalud', function (Blueprint $table): void {
+            $table->string('gold_employment_id')->nullable();
+            $table->string('documento');
+            $table->string('periodo');
+            $table->string('ruc')->nullable();
+            $table->string('nombre_empresa')->nullable();
+            $table->decimal('sueldo', 16, 4)->nullable();
+            $table->string('situacion')->nullable();
             $table->string('record_hash')->nullable();
             $table->string('source_code')->nullable();
             $table->unsignedBigInteger('batch_id')->nullable();
@@ -336,6 +458,59 @@ class SearchServiceTest extends TestCase
             'partida_registral' => 'P02086269',
             'zona_registral' => 'IX',
             'oficina' => 'LIMA',
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function sbsSummaryRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'cod_sbs' => '001',
+            'fecha_reporte_sbs' => '202607',
+            'cantidad_empresas' => 2,
+            'calificacion_normal' => '100.0000',
+            'calificacion_cpp' => '0.0000',
+            'calificacion_deficiente' => '0.0000',
+            'calificacion_dudoso' => '0.0000',
+            'calificacion_perdida' => '0.0000',
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function sbsDetailRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'fecha_reporte_sbs' => '202607',
+            'cod_sbs' => '001',
+            'entidad' => 'BANCO DE PRUEBA',
+            'tipo_credito' => 'CONSUMO',
+            'condicion' => 'NOR',
+            'monto' => '5000.0000',
+            'dias_atraso' => 0,
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function employmentRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'documento' => '12345678',
+            'periodo' => '202607',
+            'ruc' => '20100000001',
+            'nombre_empresa' => 'EMPRESA DE PRUEBA S.A.C.',
+            'sueldo' => '1000.0000',
+            'situacion' => 'ACTIVO',
         ], $overrides);
     }
 }
