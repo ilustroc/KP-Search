@@ -23,7 +23,7 @@ class SearchServiceTest extends TestCase
         $queries = DB::connection('mysql_gold')->getQueryLog();
 
         $this->assertSame('CLIENTE EXACTO', $result['person']['nombre_completo']);
-        $this->assertCount(9, $queries);
+        $this->assertCount(10, $queries);
 
         foreach ($queries as $query) {
             $this->assertStringContainsString('where "documento" = ?', $query['query']);
@@ -111,6 +111,33 @@ class SearchServiceTest extends TestCase
             static fn (array $property): string => $property['oficina'].':'.$property['partida_registral'],
             $result['properties'],
         ));
+    }
+
+    public function test_search_keeps_family_records_documents_relationship_codes_and_source_dates(): void
+    {
+        $this->createGoldPersonIndex();
+        DB::connection('mysql_gold')->table('search_familiares')->insert([
+            $this->familyRecord(['gold_family_id' => 10, 'source_row_number' => 10, 'documento_familiar' => '9406251AN', 'paterno_familiar' => 'PEREZ', 'materno_familiar' => 'LOPEZ', 'nombres_familiar' => 'ANA', 'nacimiento_familiar' => '1980-01-15', 'tipo_familiar' => 'H']),
+            $this->familyRecord(['gold_family_id' => 11, 'source_row_number' => 11, 'documento_familiar' => '9406251AN', 'paterno_familiar' => 'PEREZ', 'materno_familiar' => 'LOPEZ', 'nombres_familiar' => 'ANA', 'nacimiento_familiar' => '1980-01-15', 'tipo_familiar' => 'H']),
+            $this->familyRecord(['gold_family_id' => 12, 'source_row_number' => 12, 'documento_familiar' => '00000000', 'nacimiento_familiar' => '2024-02-31', 'tipo_familiar' => 'C']),
+            $this->familyRecord(['gold_family_id' => 13, 'source_row_number' => 13, 'documento_familiar' => '0', 'nacimiento_familiar' => 'SIN FECHA', 'tipo_familiar' => 'G']),
+            $this->familyRecord(['gold_family_id' => 14, 'source_row_number' => 14, 'documento_familiar' => null, 'paterno_familiar' => null, 'materno_familiar' => null, 'nombres_familiar' => null, 'nacimiento_familiar' => null, 'tipo_familiar' => 'N']),
+        ]);
+
+        $result = app(SearchService::class)->search('12345678');
+
+        $this->assertCount(5, $result['family']);
+        $this->assertSame(['9406251AN', '9406251AN', '00000000', '0', null], array_column($result['family'], 'documento_familiar'));
+        $this->assertSame(['H', 'H', 'C', 'G', 'N'], array_column($result['family'], 'tipo_familiar'));
+        $this->assertSame('PEREZ LOPEZ ANA', $result['family'][0]['nombre_completo']);
+        $this->assertSame($result['family'][0], $result['family'][1]);
+        $this->assertSame('15/01/1980', $result['family'][0]['nacimiento_familiar_formateado']);
+        $this->assertSame('2024-02-31', $result['family'][2]['nacimiento_familiar_formateado']);
+        $this->assertSame('SIN FECHA', $result['family'][3]['nacimiento_familiar_formateado']);
+        $this->assertNull($result['family'][4]['nombre_completo']);
+        $this->assertNull($result['family'][4]['nacimiento_familiar_formateado']);
+        $this->assertArrayNotHasKey('gold_family_id', $result['family'][0]);
+        $this->assertArrayNotHasKey('source_code', $result['family'][0]);
     }
 
     public function test_unpublished_datasets_return_empty_collections(): void
@@ -319,6 +346,22 @@ class SearchServiceTest extends TestCase
             $table->dateTime('updated_at')->nullable();
         });
 
+        Schema::connection('mysql_gold')->create('search_familiares', function (Blueprint $table): void {
+            $table->unsignedBigInteger('gold_family_id')->nullable();
+            $table->string('documento');
+            $table->string('documento_familiar')->nullable();
+            $table->string('paterno_familiar')->nullable();
+            $table->string('materno_familiar')->nullable();
+            $table->string('nombres_familiar')->nullable();
+            $table->string('nacimiento_familiar')->nullable();
+            $table->string('tipo_familiar')->nullable();
+            $table->string('source_code')->nullable();
+            $table->unsignedBigInteger('batch_id')->nullable();
+            $table->unsignedBigInteger('source_row_number')->nullable();
+            $table->string('record_hash')->nullable();
+            $table->dateTime('updated_at')->nullable();
+        });
+
         Schema::connection('mysql_gold')->create('search_sbs_resumen', function (Blueprint $table): void {
             $table->string('documento');
             $table->string('cod_sbs');
@@ -458,6 +501,25 @@ class SearchServiceTest extends TestCase
             'partida_registral' => 'P02086269',
             'zona_registral' => 'IX',
             'oficina' => 'LIMA',
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function familyRecord(array $overrides = []): array
+    {
+        return array_merge([
+            'gold_family_id' => 1,
+            'documento' => '12345678',
+            'documento_familiar' => '87654321',
+            'paterno_familiar' => 'FAMILIAR',
+            'materno_familiar' => 'PRUEBA',
+            'nombres_familiar' => 'UNO',
+            'nacimiento_familiar' => '1990-01-01',
+            'tipo_familiar' => 'HERMANO',
+            'source_row_number' => 1,
         ], $overrides);
     }
 

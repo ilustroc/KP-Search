@@ -13,10 +13,10 @@
     </div>
     <div class="max-w-full overflow-x-auto">
         <table class="w-full min-w-[680px] text-left text-[13px]">
-            <thead class="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-[0.05em] text-slate-500"><tr><th class="px-4 py-2 font-semibold">Nombre</th><th class="px-4 py-2 font-semibold">DNI</th><th class="px-4 py-2 font-semibold">Parentesco</th><th class="px-4 py-2 font-semibold">Fecha nacimiento</th></tr></thead>
+            <thead class="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-[0.05em] text-slate-500"><tr><th class="px-4 py-2 font-semibold">Documento familiar</th><th class="px-4 py-2 font-semibold">Apellidos y nombres</th><th class="px-4 py-2 font-semibold">Fecha de nacimiento</th><th class="px-4 py-2 font-semibold">Tipo de familiar</th></tr></thead>
             <tbody class="divide-y divide-slate-100 text-slate-700">
                 @forelse ($family as $relative)
-                    <tr><td class="px-4 py-2.5 font-medium">{{ data_get($relative, 'nombre', '—') }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'documento', '—') }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'parentesco', '—') }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'fecha_nacimiento', '—') }}</td></tr>
+                    <tr><td class="px-4 py-2.5 font-medium">{{ data_get($relative, 'documento_familiar') ?: '—' }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'nombre_completo') ?: '—' }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'nacimiento_familiar_formateado') ?: '—' }}</td><td class="px-4 py-2.5">{{ data_get($relative, 'tipo_familiar') ?: '—' }}</td></tr>
                 @empty
                     <tr><td colspan="4" class="px-4 py-3.5 text-sm text-slate-500">No se encontraron datos</td></tr>
                 @endforelse

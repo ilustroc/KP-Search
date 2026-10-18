@@ -67,6 +67,16 @@ class SearchService
     ];
 
     /** @var list<string> */
+    private const FAMILY_COLUMNS = [
+        'documento_familiar',
+        'paterno_familiar',
+        'materno_familiar',
+        'nombres_familiar',
+        'nacimiento_familiar',
+        'tipo_familiar',
+    ];
+
+    /** @var list<string> */
     private const SBS_SUMMARY_COLUMNS = [
         'cod_sbs',
         'fecha_reporte_sbs',
@@ -135,6 +145,9 @@ class SearchService
             $dataset = 'PROPIEDADES';
             $properties = $this->findProperties($document);
 
+            $dataset = 'FAMILIARES';
+            $family = $this->findFamily($document);
+
             $dataset = 'SBS_RESUMEN';
             $sbsSummary = $this->findSbsSummary($document);
 
@@ -156,6 +169,7 @@ class SearchService
             addresses: $addresses,
             vehicles: $vehicles,
             properties: $properties,
+            family: $family,
             sbsSummary: $sbsSummary,
             sbsAccounts: $sbsAccounts,
             essalud: $essalud,
@@ -280,6 +294,30 @@ class SearchService
     /**
      * @return list<array<string, mixed>>
      */
+    private function findFamily(string $document): array
+    {
+        return DB::connection((string) config('search.connection'))
+            ->table((string) config('search.familiares.object'))
+            ->select(self::FAMILY_COLUMNS)
+            ->where('documento', $document)
+            ->orderBy('source_row_number')
+            ->orderBy('gold_family_id')
+            ->get()
+            ->map(function (stdClass $relative): array {
+                $relativeData = (array) $relative;
+                $relativeData['nombre_completo'] = $this->formatFamilyName($relativeData);
+                $relativeData['nacimiento_familiar_formateado'] = $this->formatFamilyBirthDate(
+                    $relativeData['nacimiento_familiar'] ?? null,
+                );
+
+                return $relativeData;
+            })
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     private function findSbsSummary(string $document): array
     {
         return DB::connection((string) config('search.connection'))
@@ -378,6 +416,7 @@ class SearchService
         array $addresses = [],
         array $vehicles = [],
         array $properties = [],
+        array $family = [],
         array $sbsSummary = [],
         array $sbsAccounts = [],
         array $essalud = [],
@@ -391,7 +430,7 @@ class SearchService
             'addresses' => $addresses,
             'vehicles' => $vehicles,
             'properties' => $properties,
-            'family' => [],
+            'family' => $family,
             'sbs_summary' => $sbsSummary,
             'sbs_accounts' => $sbsAccounts,
             'essalud' => $essalud,
@@ -442,6 +481,45 @@ class SearchService
             return CarbonImmutable::parse($date)->format('d/m/Y H:i');
         } catch (Throwable) {
             return null;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $relative
+     */
+    private function formatFamilyName(array $relative): ?string
+    {
+        $nameParts = array_filter([
+            $relative['paterno_familiar'] ?? null,
+            $relative['materno_familiar'] ?? null,
+            $relative['nombres_familiar'] ?? null,
+        ], static fn (mixed $namePart): bool => is_string($namePart) && $namePart !== '');
+
+        if ($nameParts === []) {
+            return null;
+        }
+
+        return implode(' ', $nameParts);
+    }
+
+    private function formatFamilyBirthDate(mixed $birthDate): ?string
+    {
+        if (! is_string($birthDate) || $birthDate === '') {
+            return null;
+        }
+
+        if (preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $birthDate) !== 1) {
+            return $birthDate;
+        }
+
+        try {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $birthDate);
+
+            return $date->format('Y-m-d') === $birthDate
+                ? $date->format('d/m/Y')
+                : $birthDate;
+        } catch (Throwable) {
+            return $birthDate;
         }
     }
 

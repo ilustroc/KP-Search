@@ -52,7 +52,7 @@
                     </div>
                     <h1 class="mt-4 text-lg font-bold text-slate-900">No fue posible realizar la consulta. Inténtalo nuevamente.</h1>
                 </section>
-            @elseif ($result['person'] === null && $result['phones'] === [] && $result['emails'] === [] && $result['addresses'] === [] && $result['vehicles'] === [] && $result['properties'] === [] && $result['sbs_summary'] === [] && $result['sbs_accounts'] === [] && $result['essalud'] === [])
+            @elseif ($result['person'] === null && $result['phones'] === [] && $result['emails'] === [] && $result['addresses'] === [] && $result['vehicles'] === [] && $result['properties'] === [] && $result['family'] === [] && $result['sbs_summary'] === [] && $result['sbs_accounts'] === [] && $result['essalud'] === [])
                 <section class="rounded-lg border border-slate-200 bg-white px-5 py-10 text-center shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                     <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-hidden="true">
                         <svg class="size-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

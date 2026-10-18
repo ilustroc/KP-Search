@@ -20,6 +20,9 @@ return [
     'propiedades' => [
         'object' => 'search_propiedades',
     ],
+    'familiares' => [
+        'object' => 'search_familiares',
+    ],
     'sbs_resumen' => [
         'object' => 'search_sbs_resumen',
     ],
