@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Str;
-use Pdo\Mysql;
 
 $mysqlConnection = static function (string $prefix, string $defaultDatabase): array {
     return [
@@ -21,7 +20,7 @@ $mysqlConnection = static function (string $prefix, string $defaultDatabase): ar
         'strict' => true,
         'engine' => 'InnoDB',
         'options' => extension_loaded('pdo_mysql') ? array_filter([
-            Mysql::ATTR_SSL_CA => env($prefix.'_SSL_CA'),
+            PDO::MYSQL_ATTR_SSL_CA => env($prefix.'_SSL_CA'),
         ]) : [],
     ];
 };
@@ -92,7 +91,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
@@ -112,7 +111,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
