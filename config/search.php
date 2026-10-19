@@ -1,7 +1,10 @@
 <?php
 
+$localPreviewEnabled = env('APP_ENV') === 'local' && env('SEARCH_LOCAL_PREVIEW', false);
+
 return [
-    'connection' => 'mysql_gold',
+    'connection' => $localPreviewEnabled ? 'sqlite_preview' : 'mysql_gold',
+    'preview_enabled' => $localPreviewEnabled,
     'personas' => [
         'object' => 'search_person_index',
     ],

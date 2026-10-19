@@ -69,6 +69,13 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        'sqlite_preview' => [
+            'driver' => 'sqlite',
+            'database' => env('SEARCH_PREVIEW_DATABASE', database_path('preview.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
