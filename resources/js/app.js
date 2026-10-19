@@ -25,7 +25,13 @@ const initializeResultTabs = () => {
         });
 
         panels.forEach((panel) => {
-            panel.hidden = panel.dataset.resultPanel !== selectedPanel;
+            const isSelected = panel.dataset.resultPanel === selectedPanel;
+            panel.hidden = !isSelected;
+
+            if (isSelected) {
+                panel.classList.remove('kp-panel-enter');
+                window.requestAnimationFrame(() => panel.classList.add('kp-panel-enter'));
+            }
         });
     };
 
@@ -68,7 +74,25 @@ const initializeExpandableTables = () => {
     });
 };
 
+const initializeSearchForms = () => {
+    document.querySelectorAll('[data-search-form]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            const button = form.querySelector('[data-search-button]');
+            const label = button?.querySelector('[data-search-button-label]');
+
+            if (!button || !label || !form.checkValidity()) {
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            label.textContent = 'Consultando...';
+        });
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeResultTabs();
     initializeExpandableTables();
+    initializeSearchForms();
 });

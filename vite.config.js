@@ -18,8 +18,21 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        host: '0.0.0.0',
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: process.env.VITE_HMR_HOST ?? 'localhost',
+            port: 5173,
+        },
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            usePolling: process.env.VITE_USE_POLLING === 'true',
+            ignored: [
+                '**/bootstrap/cache/**',
+                '**/database/*.sqlite',
+                '**/storage/framework/views/**',
+                '**/vendor/**',
+            ],
         },
     },
 });
