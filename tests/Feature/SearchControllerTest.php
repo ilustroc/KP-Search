@@ -92,6 +92,8 @@ class SearchControllerTest extends TestCase
             ->assertSeeText('CLIENTE DE PRUEBA')
             ->assertSeeText('Documento 12345678')
             ->assertSeeText('Edad 36')
+            ->assertSeeText('PADRE DE PRUEBA')
+            ->assertSeeText('MADRE DE PRUEBA')
             ->assertSeeText('903211606')
             ->assertSeeText('Principal')
             ->assertSeeText('Situación financiera')
@@ -500,6 +502,8 @@ class SearchControllerTest extends TestCase
             $table->string('sexo')->nullable();
             $table->string('estado_civil')->nullable();
             $table->text('direccion_origen')->nullable();
+            $table->string('padre')->nullable();
+            $table->string('madre')->nullable();
             $table->string('source_code');
             $table->unsignedBigInteger('batch_id');
             $table->dateTime('updated_at');
@@ -655,6 +659,8 @@ class SearchControllerTest extends TestCase
             'sexo' => 'F',
             'estado_civil' => 'SOLTERO',
             'direccion_origen' => 'LIMA',
+            'padre' => 'PADRE DE PRUEBA',
+            'madre' => 'MADRE DE PRUEBA',
             'source_code' => 'TEST',
             'batch_id' => 1,
             'updated_at' => '2026-10-15 09:30:00',

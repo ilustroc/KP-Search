@@ -59,6 +59,8 @@ class LocalPreviewGoldSeederTest extends TestCase
 
         $this->assertFalse($result['gold_query_failed']);
         $this->assertSame('MARÍA ELENA TORRES SALAZAR', $result['person']['nombre_completo']);
+        $this->assertSame('CARLOS TORRES', $result['person']['padre']);
+        $this->assertSame('ELENA SALAZAR', $result['person']['madre']);
         $this->assertCount(2, $result['phones']);
         $this->assertCount(2, $result['addresses']);
         $this->assertCount(1, $result['sbs_summary']);
@@ -82,7 +84,7 @@ class LocalPreviewGoldSeederTest extends TestCase
     private function requiredColumns(): array
     {
         return [
-            'search_person_index' => ['documento', 'tipo_documento', 'nombre_completo', 'paterno', 'materno', 'nombres', 'fecha_nacimiento', 'sexo', 'estado_civil', 'direccion_origen', 'source_code', 'batch_id', 'updated_at'],
+            'search_person_index' => ['documento', 'tipo_documento', 'nombre_completo', 'paterno', 'materno', 'nombres', 'fecha_nacimiento', 'sexo', 'estado_civil', 'direccion_origen', 'padre', 'madre', 'source_code', 'batch_id', 'updated_at'],
             'search_telefonos' => ['documento', 'telefono', 'operador', 'fecha_data'],
             'search_correos' => ['documento', 'correo'],
             'search_direcciones' => ['documento', 'direccion', 'departamento', 'provincia', 'distrito', 'data_procedencia', 'procedencia_anio'],

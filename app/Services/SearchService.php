@@ -22,6 +22,8 @@ class SearchService
         'sexo',
         'estado_civil',
         'direccion_origen',
+        'padre',
+        'madre',
         'source_code',
         'batch_id',
         'updated_at',

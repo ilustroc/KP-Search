@@ -44,6 +44,8 @@ class LocalPreviewGoldSeeder extends Seeder
             $table->string('sexo')->nullable();
             $table->string('estado_civil')->nullable();
             $table->text('direccion_origen')->nullable();
+            $table->string('padre')->nullable();
+            $table->string('madre')->nullable();
             $table->string('source_code')->nullable();
             $table->unsignedBigInteger('batch_id')->nullable();
             $table->dateTime('updated_at')->nullable();
@@ -132,6 +134,7 @@ class LocalPreviewGoldSeeder extends Seeder
             'documento' => '12345678', 'tipo_documento' => 'DNI', 'nombre_completo' => 'MARÍA ELENA TORRES SALAZAR',
             'paterno' => 'TORRES', 'materno' => 'SALAZAR', 'nombres' => 'MARÍA ELENA', 'fecha_nacimiento' => '1988-06-14',
             'sexo' => '2', 'estado_civil' => 'CASADO', 'direccion_origen' => 'LIMA-LIMA-MIRAFLORES',
+            'padre' => 'CARLOS TORRES', 'madre' => 'ELENA SALAZAR',
             'source_code' => 'LOCAL', 'batch_id' => 1, 'updated_at' => '2026-10-19 09:00:00',
         ]);
         DB::connection($connection)->table('search_telefonos')->insert([

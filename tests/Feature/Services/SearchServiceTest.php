@@ -23,6 +23,8 @@ class SearchServiceTest extends TestCase
         $queries = DB::connection('mysql_gold')->getQueryLog();
 
         $this->assertSame('CLIENTE EXACTO', $result['person']['nombre_completo']);
+        $this->assertSame('PADRE DE PRUEBA', $result['person']['padre']);
+        $this->assertSame('MADRE DE PRUEBA', $result['person']['madre']);
         $this->assertCount(10, $queries);
 
         foreach ($queries as $query) {
@@ -281,6 +283,8 @@ class SearchServiceTest extends TestCase
             $table->string('sexo')->nullable();
             $table->string('estado_civil')->nullable();
             $table->text('direccion_origen')->nullable();
+            $table->string('padre')->nullable();
+            $table->string('madre')->nullable();
             $table->string('source_code');
             $table->unsignedBigInteger('batch_id');
             $table->dateTime('updated_at');
@@ -424,6 +428,8 @@ class SearchServiceTest extends TestCase
             'sexo' => null,
             'estado_civil' => null,
             'direccion_origen' => null,
+            'padre' => 'PADRE DE PRUEBA',
+            'madre' => 'MADRE DE PRUEBA',
             'source_code' => 'TEST',
             'batch_id' => 1,
             'updated_at' => '2026-10-15 09:30:00',
