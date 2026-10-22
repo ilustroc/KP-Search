@@ -5,7 +5,11 @@
         <x-ui.empty-state />
     @else
         @php($sexo = mb_strtoupper(trim((string) ($person['sexo'] ?? ''))))
-        @php($sexoLabel = match ($sexo) { 'MASCULINO' => 'Masculino', 'FEMENINO' => 'Femenino', default => 'No especificado' })
+        @php($sexoLabel = match ($sexo) {
+            '2', 'FEMENINO', 'MUJER' => 'Femenino',
+            'MASCULINO', 'HOMBRE' => 'Masculino',
+            default => 'No especificado',
+        })
         @php($estadoCivil = $person['estado_civil'] ?? null)
 
         <dl class="grid grid-cols-1 gap-x-6 gap-y-4 p-4 sm:grid-cols-2">
